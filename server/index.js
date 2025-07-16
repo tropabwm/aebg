@@ -266,12 +266,12 @@ app.post('/api/remove-background', uploadMultiple.fields([
     }
 
     // Prepare Python script arguments
+    const pythonScript = path.join(__dirname, 'background_remover_simple.py');
     const pythonArgs = [
-      path.join(__dirname, 'background_remover.py'),
+      pythonScript,
       '--input', inputPath,
       '--output', outputPath,
       '--background-type', options.backgroundType || 'transparent',
-      '--quality', options.quality || 'high'
     ];
 
     // Add background value if specified
@@ -281,12 +281,7 @@ app.post('/api/remove-background', uploadMultiple.fields([
       pythonArgs.push('--background-value', req.files.backgroundImage[0].path);
     }
 
-    // Add fast mode flag
-    if (options.fastMode) {
-      pythonArgs.push('--fast-mode');
-    }
-
-    console.log('Executando remoção de background:', 'python', pythonArgs.join(' '));
+    console.log('Executando remoção de background (versão simples):', 'python', pythonArgs.join(' '));
     
     // Execute Python script
     const pythonProcess = spawn('python', pythonArgs, 
@@ -358,10 +353,12 @@ app.post('/api/remove-background', uploadMultiple.fields([
     // Set timeout for long-running processes
     const timeout = setTimeout(() => {
       pythonProcess.kill();
-      res.status(500).json({ 
-        error: 'Timeout: Processamento demorou mais que 10 minutos' 
-      });
-    }, 10 * 60 * 1000); // 10 minutes
+      if (!res.headersSent) {
+        res.status(500).json({ 
+          error: 'Timeout: Processamento demorou mais que 5 minutos' 
+        });
+      }
+    }, 5 * 60 * 1000); // 5 minutes
 
     pythonProcess.on('close', () => {
       clearTimeout(timeout);

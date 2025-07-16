@@ -175,11 +175,17 @@ function App() {
     setProcessingStatus({
       isProcessing: true,
       progress: 0,
-      currentStep: 'Preparando para remoção de background...',
+      currentStep: 'Verificando dependências...',
       error: null
     });
 
     try {
+      // Check server health first
+      const healthResponse = await fetch('/api/health');
+      if (!healthResponse.ok) {
+        throw new Error('Servidor não está respondendo');
+      }
+      
       const formData = new FormData();
       const response = await fetch(originalVideo);
       const blob = await response.blob();
@@ -192,26 +198,27 @@ function App() {
 
       setProcessingStatus(prev => ({
         ...prev,
-        currentStep: 'Removendo background...',
+        currentStep: 'Removendo background (pode demorar alguns minutos)...',
         progress: 20
       }));
       
       const processResponse = await fetch('/api/remove-background', {
         method: 'POST',
         body: formData,
-        // Add timeout for long requests
-        signal: AbortSignal.timeout(10 * 60 * 1000) // 10 minutes
+        // Add timeout for long requests  
+        signal: AbortSignal.timeout(5 * 60 * 1000) // 5 minutes
       });
 
       if (!processResponse.ok) {
-        const errorText = await processResponse.text();
-        let errorData;
+        let errorMessage = `Erro HTTP ${processResponse.status}`;
         try {
-          errorData = JSON.parse(errorText);
+          const errorData = await processResponse.json();
+          errorMessage = errorData.error || errorMessage;
         } catch {
-          throw new Error(`Erro HTTP ${processResponse.status}: ${errorText}`);
+          const errorText = await processResponse.text();
+          errorMessage = errorText || errorMessage;
         }
-        throw new Error(errorData.error || 'Erro na remoção do background');
+        throw new Error(errorMessage);
       }
 
       const result = await processResponse.json();
