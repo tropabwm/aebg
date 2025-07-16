@@ -135,10 +135,7 @@ app.post('/api/remove-background', uploadMultiple.fields([
     const autoEditorProcess = spawn(autoEditorCheck.command.split(' ')[0], 
       autoEditorCheck.command.includes('python') ? 
         ['-m', 'auto_editor', ...args] : args, 
-      { 
-    if (options.backgroundType === 'image' && req.files.backgroundImage) {
-        stdio: ['pipe', 'pipe', 'pipe']
-      }
+      { stdio: ['pipe', 'pipe', 'pipe'] }
     );
 
     let stdout = '';
@@ -264,6 +261,7 @@ function formatSubtitleTime(seconds) {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
+
 // Export video endpoint
 app.post('/api/export-video', (req, res) => {
   const { format, videoPath } = req.body;
