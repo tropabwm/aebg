@@ -7,20 +7,21 @@ echo.
 echo Instalando rembg (versao mais estavel)...
 echo.
 
-echo [1/2] Instalando rembg...
-pip install rembg[new]
+echo [1/3] Instalando onnxruntime...
+pip install onnxruntime
 
 if %errorLevel% neq 0 (
     echo.
     echo Tentando com python -m pip...
-    python -m pip install rembg[new]
+    python -m pip install onnxruntime
     
     if %errorLevel% neq 0 (
         echo.
-        echo ERRO: Falha na instalacao do rembg
+        echo ERRO: Falha na instalacao do onnxruntime
         echo.
         echo Tente executar manualmente:
-        echo pip install rembg[new]
+        echo pip install onnxruntime
+        echo pip install rembg
         echo.
         pause
         exit /b 1
@@ -28,7 +29,29 @@ if %errorLevel% neq 0 (
 )
 
 echo.
-echo [2/2] Testando instalacao...
+echo [2/3] Instalando rembg...
+pip install rembg
+
+if %errorLevel% neq 0 (
+    echo.
+    echo Tentando com python -m pip...
+    python -m pip install rembg
+    
+    if %errorLevel% neq 0 (
+        echo.
+        echo ERRO: Falha na instalacao do rembg
+        echo.
+        echo Tente executar manualmente:
+        echo pip install onnxruntime
+        echo pip install rembg
+        echo.
+        pause
+        exit /b 1
+    )
+)
+
+echo.
+echo [3/3] Testando instalacao...
 python -c "import rembg; print('✓ rembg instalado com sucesso!')"
 
 if %errorLevel% neq 0 (

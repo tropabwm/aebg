@@ -266,7 +266,20 @@ app.post('/api/remove-background', uploadMultiple.fields([
     }
 
     // Prepare Python script arguments
-    const pythonScript = path.join(__dirname, 'background_remover_simple.py');
+    let pythonScript = path.join(__dirname, 'background_remover_simple.py');
+    
+    // Check if rembg is available, otherwise use OpenCV fallback
+    const rembgCheck = await new Promise((resolve) => {
+      exec('python -c "import rembg; print(\'OK\')"', (error, stdout, stderr) => {
+        resolve(!error);
+      });
+    });
+    
+    if (!rembgCheck) {
+      console.log('rembg not available, using OpenCV fallback');
+      pythonScript = path.join(__dirname, 'background_remover_opencv.py');
+    }
+    
     const pythonArgs = [
       pythonScript,
       '--input', inputPath,

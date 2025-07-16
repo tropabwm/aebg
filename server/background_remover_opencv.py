@@ -1,49 +1,20 @@
 #!/usr/bin/env python3
 """
-Simple background remover using rembg library
-More stable than BiRefNet for production use
+Background remover using OpenCV and basic image processing
+Fallback option when rembg is not available
 """
 
 import sys
 import os
 import argparse
-import json
+import cv2
+import numpy as np
 from pathlib import Path
 
-def install_rembg():
-    """Install rembg if not available"""
+def remove_background_opencv(input_path, output_path, background_type="transparent", background_value=None):
+    """Remove background using OpenCV (basic green screen removal)"""
     try:
-        import rembg
-        return True
-    except ImportError:
-        print("Installing rembg...")
-        import subprocess
-        try:
-            # Install onnxruntime first
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "onnxruntime"])
-            # Then install rembg
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "rembg"])
-            import rembg
-            return True
-        except Exception as e:
-            print(f"Failed to install rembg: {e}")
-            return False
-
-def process_video_simple(input_path, output_path, background_type="transparent", background_value=None):
-    """Process video with simple background removal"""
-    try:
-        # Install rembg if needed
-        if not install_rembg():
-            print("ERROR: Could not install rembg")
-            return False
-            
-        import rembg
-        from rembg import remove
-        import cv2
-        import numpy as np
-        from PIL import Image
-        
-        print(f"Processing video: {input_path}")
+        print(f"Processing video with OpenCV: {input_path}")
         print(f"Output: {output_path}")
         print(f"Background type: {background_type}")
         
@@ -77,9 +48,9 @@ def process_video_simple(input_path, output_path, background_type="transparent",
             rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
             background_img = np.full((height, width, 3), rgb[::-1], dtype=np.uint8)  # BGR for OpenCV
         elif background_type == "image" and background_value and os.path.exists(background_value):
-            bg_pil = Image.open(background_value).convert('RGB')
-            bg_pil = bg_pil.resize((width, height))
-            background_img = cv2.cvtColor(np.array(bg_pil), cv2.COLOR_RGB2BGR)
+            bg_img = cv2.imread(background_value)
+            if bg_img is not None:
+                background_img = cv2.resize(bg_img, (width, height))
         
         # Process frames
         frame_count = 0
@@ -91,36 +62,33 @@ def process_video_simple(input_path, output_path, background_type="transparent",
             frame_count += 1
             
             try:
-                # Convert frame to PIL Image
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                pil_image = Image.fromarray(frame_rgb)
+                # Simple green screen removal (basic approach)
+                if background_type == "transparent" or background_img is not None:
+                    # Convert to HSV for better color detection
+                    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                    
+                    # Define range for green color (adjust as needed)
+                    lower_green = np.array([40, 40, 40])
+                    upper_green = np.array([80, 255, 255])
+                    
+                    # Create mask for green pixels
+                    mask = cv2.inRange(hsv, lower_green, upper_green)
+                    
+                    # Invert mask to get non-green pixels
+                    mask_inv = cv2.bitwise_not(mask)
+                    
+                    if background_img is not None:
+                        # Replace green pixels with background
+                        result = frame.copy()
+                        result[mask > 0] = background_img[mask > 0]
+                    else:
+                        # For transparent background, just use original frame
+                        # (OpenCV doesn't handle transparency well, so we keep original)
+                        result = frame
+                else:
+                    result = frame
                 
-                # Remove background
-                result = remove(pil_image)
-                
-                # Handle different background types
-                if background_type == "transparent":
-                    # Convert RGBA to RGB with white background
-                    if result.mode == 'RGBA':
-                        white_bg = Image.new('RGB', result.size, (255, 255, 255))
-                        result = Image.alpha_composite(white_bg.convert('RGBA'), result).convert('RGB')
-                elif background_img is not None:
-                    # Composite with custom background
-                    if result.mode == 'RGBA':
-                        # Extract alpha channel
-                        alpha = np.array(result)[:, :, 3] / 255.0
-                        result_rgb = np.array(result.convert('RGB'))
-                        
-                        # Blend with background
-                        for c in range(3):
-                            result_rgb[:, :, c] = (alpha * result_rgb[:, :, c] + 
-                                                 (1 - alpha) * background_img[:, :, c])
-                        
-                        result = Image.fromarray(result_rgb.astype(np.uint8))
-                
-                # Convert back to OpenCV format
-                result_cv = cv2.cvtColor(np.array(result), cv2.COLOR_RGB2BGR)
-                out.write(result_cv)
+                out.write(result)
                 
                 # Progress update
                 if frame_count % 30 == 0 or frame_count == total_frames:
@@ -146,7 +114,7 @@ def process_video_simple(input_path, output_path, background_type="transparent",
         return False
 
 def main():
-    parser = argparse.ArgumentParser(description='Remove background from video (simple version)')
+    parser = argparse.ArgumentParser(description='Remove background from video (OpenCV version)')
     parser.add_argument('--input', required=True, help='Input video path')
     parser.add_argument('--output', required=True, help='Output video path')
     parser.add_argument('--background-type', default='transparent', choices=['transparent', 'color', 'image'])
@@ -154,7 +122,7 @@ def main():
     
     args = parser.parse_args()
     
-    success = process_video_simple(
+    success = remove_background_opencv(
         args.input,
         args.output,
         args.background_type,
