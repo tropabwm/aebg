@@ -207,35 +207,60 @@ app.post('/api/process-video', upload.single('video'), async (req, res) => {
 function generateSimpleSubtitles(autoEditorOutput) {
   const subtitles = [];
   
-  // Try to extract timing information from auto-editor output
+  // Parse auto-editor output for actual timing information
   const lines = autoEditorOutput.split('\n');
-  let segmentCount = 0;
+  let currentTime = 0;
+  let segmentDuration = 5; // Default segment duration
   
   for (const line of lines) {
-    if (line.includes('segment') || line.includes('cut')) {
-      segmentCount++;
-      const start = segmentCount * 5; // Simple timing
-      const end = start + 4;
+    // Look for timing patterns in auto-editor output
+    const timeMatch = line.match(/(\d+):(\d+):(\d+\.?\d*)/);
+    const segmentMatch = line.match(/segment|cut|keep/i);
+    
+    if (timeMatch || segmentMatch) {
+      let start, end;
+      
+      if (timeMatch) {
+        const hours = parseInt(timeMatch[1]);
+        const minutes = parseInt(timeMatch[2]);
+        const seconds = parseFloat(timeMatch[3]);
+        start = hours * 3600 + minutes * 60 + seconds;
+        end = start + segmentDuration;
+      } else {
+        start = currentTime;
+        end = currentTime + segmentDuration;
+        currentTime += segmentDuration;
+      }
+      
       subtitles.push({
         start: start,
         end: end,
-        text: `Segmento ${segmentCount}`
+        text: line.includes('cut') ? 'Silêncio removido' : `Conteúdo mantido (${formatSubtitleTime(start)} - ${formatSubtitleTime(end)})`
       });
     }
   }
   
-  // If no segments found, create a default subtitle
+  // If no segments found, create default subtitles based on processing
   if (subtitles.length === 0) {
-    subtitles.push({
-      start: 0,
-      end: 10,
-      text: 'Vídeo processado pelo Auto-Editor'
-    });
+    // Create subtitles every 10 seconds for a 60-second default
+    for (let i = 0; i < 60; i += 10) {
+      subtitles.push({
+        start: i,
+        end: i + 9,
+        text: `Segmento processado ${Math.floor(i/10) + 1}`
+      });
+    }
   }
   
   return subtitles;
 }
 
+// Helper function to format time for subtitles
+function formatSubtitleTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
 // Export video endpoint
 app.post('/api/export-video', (req, res) => {
   const { format, videoPath } = req.body;
