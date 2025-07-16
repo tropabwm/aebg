@@ -202,7 +202,13 @@ function App() {
       });
 
       if (!processResponse.ok) {
-        const errorData = await processResponse.json();
+        const errorText = await processResponse.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          throw new Error(`Erro HTTP ${processResponse.status}: ${errorText}`);
+        }
         throw new Error(errorData.error || 'Erro na remoção do background');
       }
 

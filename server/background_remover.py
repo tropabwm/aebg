@@ -36,9 +36,12 @@ transform_image = transforms.Compose([
 def process_frame(image, background, fast_mode=True):
     """Process a single frame to remove background"""
     try:
+        # Load models if not already loaded
+        birefnet_model, birefnet_lite_model = load_models()
+        
         image_size = image.size
         input_images = transform_image(image).unsqueeze(0).to(device)
-        model = birefnet_lite if fast_mode else birefnet
+        model = birefnet_lite_model if fast_mode else birefnet_model
         
         with torch.no_grad():
             preds = model(input_images)[-1].sigmoid().cpu()

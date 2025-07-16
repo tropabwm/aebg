@@ -79,8 +79,11 @@ function checkAutoEditor() {
 }
 
 // Auto-editor processing endpoint
-app.post('/api/process-video', upload.single('video'), async (req, res) => {
-  if (!req.file) {
+app.post('/api/remove-background', uploadMultiple.fields([
+  { name: 'video', maxCount: 1 },
+  { name: 'backgroundImage', maxCount: 1 }
+]), async (req, res) => {
+  if (!req.files || !req.files.video) {
     return res.status(400).json({ error: 'Nenhum arquivo enviado' });
   }
 
@@ -93,7 +96,7 @@ app.post('/api/process-video', upload.single('video'), async (req, res) => {
       });
     }
 
-    const inputPath = req.file.path;
+    const inputPath = req.files.video[0].path;
     
     // Verify input file has extension
     if (!path.extname(inputPath)) {
@@ -133,7 +136,7 @@ app.post('/api/process-video', upload.single('video'), async (req, res) => {
       autoEditorCheck.command.includes('python') ? 
         ['-m', 'auto_editor', ...args] : args, 
       { 
-        cwd: __dirname,
+    if (options.backgroundType === 'image' && req.files.backgroundImage) {
         stdio: ['pipe', 'pipe', 'pipe']
       }
     );
