@@ -198,7 +198,9 @@ function App() {
       
       const processResponse = await fetch('/api/remove-background', {
         method: 'POST',
-        body: formData
+        body: formData,
+        // Add timeout for long requests
+        signal: AbortSignal.timeout(10 * 60 * 1000) // 10 minutes
       });
 
       if (!processResponse.ok) {

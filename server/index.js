@@ -354,6 +354,18 @@ app.post('/api/remove-background', uploadMultiple.fields([
         error: 'Erro ao executar remoção de background: ' + error.message 
       });
     });
+
+    // Set timeout for long-running processes
+    const timeout = setTimeout(() => {
+      pythonProcess.kill();
+      res.status(500).json({ 
+        error: 'Timeout: Processamento demorou mais que 10 minutos' 
+      });
+    }, 10 * 60 * 1000); // 10 minutes
+
+    pythonProcess.on('close', () => {
+      clearTimeout(timeout);
+    });
     
   } catch (error) {
     console.error('Erro no servidor:', error);
