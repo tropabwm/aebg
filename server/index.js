@@ -280,10 +280,22 @@ app.post('/api/export-video', (req, res) => {
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
   const autoEditorCheck = await checkAutoEditor();
+  
+  // Check Python and background removal dependencies
+  const pythonCheck = await new Promise((resolve) => {
+    exec('python -c "import torch, transformers, moviepy; print(\'Dependencies OK\')"', (error, stdout, stderr) => {
+      resolve({ 
+        available: !error, 
+        message: error ? 'Dependências do Python não encontradas' : 'Dependências OK' 
+      });
+    });
+  });
+  
   res.json({ 
     status: 'OK', 
     message: 'Auto-Editor API está funcionando',
-    autoEditor: autoEditorCheck
+    autoEditor: autoEditorCheck,
+    backgroundRemoval: pythonCheck
   });
 });
 

@@ -132,10 +132,11 @@ def process_video(input_path, output_path, background_type="transparent", backgr
             codec=codec,
             bitrate=bitrate,
             audio_codec="aac",
-            temp_audiofile="temp-audio.m4a",
+            temp_audiofile=None,
             remove_temp=True,
             verbose=False,
-            logger=None
+            logger=None,
+            threads=4
         )
         
         # Cleanup

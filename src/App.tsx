@@ -254,8 +254,8 @@ function App() {
     if (subtitles.length === 0) return;
     
     const srtContent = subtitles.map((sub, index) => {
-      const start = formatTime(sub.start);
-      const end = formatTime(sub.end);
+      const start = formatSRTTime(sub.start);
+      const end = formatSRTTime(sub.end);
       return `${index + 1}\n${start} --> ${end}\n${sub.text}\n`;
     }).join('\n');
     
@@ -267,12 +267,18 @@ function App() {
     a.click();
   };
 
-  const formatTime = (seconds: number) => {
+  const formatSRTTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
     const ms = Math.floor((seconds % 1) * 1000);
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${ms.toString().padStart(3, '0')}`;
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const togglePlay = (player: 'original' | 'processed') => {

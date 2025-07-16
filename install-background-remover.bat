@@ -18,11 +18,11 @@ if %errorLevel% neq 0 (
 
 echo.
 echo [2/3] Instalando Transformers e HuggingFace Hub...
-pip install transformers>=4.39.1 huggingface_hub
+pip install transformers>=4.39.1 huggingface_hub accelerate
 
 echo.
 echo [3/3] Instalando outras dependencias...
-pip install -r server/requirements.txt
+pip install moviepy pillow opencv-python numpy timm kornia scikit-image einops
 
 if %errorLevel% neq 0 (
     echo.
